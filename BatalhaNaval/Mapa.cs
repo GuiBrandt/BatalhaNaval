@@ -10,7 +10,6 @@ namespace BatalhaNaval
     public partial class Tabuleiro
     {
         Celula head;
-        List<long> tirosDados;
 
         /// <summary>
         /// Obtém ou define a célula na posição especificada da matriz
@@ -141,7 +140,7 @@ namespace BatalhaNaval
         /// </summary>
         public int NumeroDeColunas
         {
-            get; private set;
+            get { return 10; }
         }
 
         /// <summary>
@@ -149,34 +148,26 @@ namespace BatalhaNaval
         /// </summary>
         public int NumeroDeLinhas
         {
-            get; private set;
+            get { return 10; }
         }
 
         /// <summary>
         /// Construtor
         /// </summary>
-        /// <param name="cols">Número de colunas do mapa</param>
-        /// <param name="rows">Número de linhas do mapa</param>
-        public Tabuleiro(int cols, int rows)
+        public Tabuleiro()
         {
-            NumeroDeColunas = cols;
-            NumeroDeLinhas = rows;
-
             this.head = new Celula(-1, -1, default(Navio), null, null);
 
             Celula aux = null;
 
             // Cria os nós cabeça
-            for (int i = rows; i >= 0; --i)
+            for (int i = NumeroDeLinhas; i >= 0; --i)
                 aux = new Celula(-1, i, 0, null, aux);
             head.ProxVert = aux;
 
-            for (int i = cols; i >= 0; --i)
+            for (int i = NumeroDeColunas; i >= 0; --i)
                 aux = new Celula(i, -1, 0, aux, null);
             head.ProxHorz = aux;
-
-            // Lista de tiros recebidos
-            tirosDados = new List<long>();
         }
 
         /// <summary>
@@ -192,11 +183,11 @@ namespace BatalhaNaval
         /// 0 = baixo, 1 = esquerda, 2 = cima e 3 = direita.</param>
         /// <exception cref="IndexOutOfRangeException">Se o navio sair dos limites do mapa</exception>
         /// <exception cref="ArgumentException">Se a direção for inválida</exception>
-        /// <exception cref="Exception">Se o navio interseccionar com outro ou o tabuleiro estiver completo</exception>
+        /// <exception cref="Exception">Se o navio interseccionar com outro ou o tabuleiro já tiver navios demais do tipo passado</exception>
         public void PosicionarNavio(Navio tipo, int x, int y, int d)
         {
-            if (EstaCompleto())
-                throw new Exception("O tabuleiro está cheio");
+            if (Contar(tipo) == tipo.Limite())
+                throw new Exception("O tabuleiro já tem navios demais desse tipo");
 
             // Determina o incremento na posição X e Y para a direção dada
             int ix = 0, iy = 0;
@@ -244,18 +235,12 @@ namespace BatalhaNaval
         /// <param name="x">Coordenada X do tabuleiro onde deve-se dar o tiro</param>
         /// <param name="y">Coordenada Y do tabuleiro onde deve-se dar o tiro</param>
         /// <returns>Um ResultadoDeTiro para o tiro dado</returns>
-        /// <exception cref="Exception">Caso já tenha atirado naquela posição ou o tabuleiro não esteja completo</exception>
+        /// <exception cref="Exception">Caso o tabuleiro não esteja completo</exception>
         /// <exception cref="IndexOutOfRangeException">Caso alguma das coordenadas esteja fora do mapa</exception>
         public ResultadoDeTiro Atirar(int x, int y)
         {
             if (!EstaCompleto())
                 throw new Exception("O tabuleiro não está completo");
-
-            // Magia pra verificar se uma posição já recebeu um tiro
-            long rainbows = ((long)x << 32) + y;
-            if (tirosDados.Contains(rainbows))
-                throw new Exception(string.Format("Já foi dado um tiro na posição ({0}, {1})", x, y));
-            tirosDados.Add(rainbows);
 
             Celula celula = this[y, x];
 

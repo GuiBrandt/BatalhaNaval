@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.IO;
+using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Timers;
@@ -24,6 +25,16 @@ namespace BatalhaNaval
         /// Intervalo do timer sinalziador
         /// </summary>
         const double IntervaloSinalizador = 1000;
+
+        /// <summary>
+        /// Nome do cliente, usado para se identificar para os clientes remotos
+        /// </summary>
+        public string Nome { get; private set; }
+
+        /// <summary>
+        /// Nome do cliente remoto conectado a este
+        /// </summary>
+        public string NomeRemoto { get; private set; }
 
         // Servidor UDP para broadcasting, é isso que lista os IPs disponíveis para conexão
         // e responde requisições feitas por outros hosts para listar os computadores na rede
@@ -55,19 +66,19 @@ namespace BatalhaNaval
         /// Evento de requisição de conexão com um cliente. 
         /// O retorno indica se a conexão deve ser aceita.
         /// </summary>
-        public event EventoComEnderecoIP ClienteRequisitandoConexao;
+        public event EventoComEnderecoIP OnClienteRequisitandoConexao;
 
         /// <summary>
         /// Evento de conexão bem sucedida com um cliente.
         /// O retorno não é usado.
         /// </summary>
-        public event EventoComEnderecoIP ClienteConectado;
+        public event EventoComEnderecoIP OnClienteConectado;
 
         /// <summary>
         /// Evento de falha na conexão com um cliente.
         /// O retorno não é usado.
         /// </summary>
-        public event EventoComEnderecoIP ClienteDesconectado;
+        public event EventoComEnderecoIP OnClienteDesconectado;
 
         /// <summary>
         /// Determina se o cliente está conectado a um cliente remoto
@@ -77,8 +88,10 @@ namespace BatalhaNaval
         /// <summary>
         /// Construtor
         /// </summary>
-        private ClienteP2P()
+        private ClienteP2P(string nome)
         {
+            Nome = nome;
+
             servidorBroadcast = new UdpClient(new IPEndPoint(IPAddress.Broadcast, PortaBroadcast));
             servidorBroadcast.EnableBroadcast = true;
             servidorBroadcast.MulticastLoopback = false;
@@ -91,9 +104,9 @@ namespace BatalhaNaval
         }
 
         /// <summary>
-        /// Conecta o cliente na rede
+        /// Inicializa o cliente
         /// </summary>
-        public void Conectar()
+        public void Iniciar()
         {
             servidor.Start();
             taskBroadcasting = Task.Run(() => TratarBroadcast());
@@ -112,6 +125,10 @@ namespace BatalhaNaval
             try
             {
                 cliente = new TcpClient(new IPEndPoint(ipRemoto, PortaTcp));
+                BinaryWriter writer = new BinaryWriter(cliente.GetStream());
+
+                // Envia o nome para o cliente remoto
+                writer.Write(Nome);
 
                 // Se recebeu um 0x34, a conexão deu certo
                 if (cliente.GetStream().ReadByte() == 0x34)
@@ -141,30 +158,44 @@ namespace BatalhaNaval
             while (!Conectado)
             {
                 cliente = servidor.AcceptTcpClient();
-                IPAddress addr = (cliente.Client.RemoteEndPoint as IPEndPoint).Address;
 
-                if (ClienteRequisitandoConexao(addr))
+                try
                 {
-                    try
+                    BinaryReader reader = new BinaryReader(cliente.GetStream());
+                    NomeRemoto = reader.ReadString();
+
+                    IPAddress addr = (cliente.Client.RemoteEndPoint as IPEndPoint).Address;
+
+                    if (OnClienteRequisitandoConexao(addr))
                     {
-                        // Envia um 0x34 para sinalizar que a conexão foi aceita
-                        cliente.GetStream().WriteByte(0x34);
-
-                        // Espera um 0x69 sinalizando que, realmente, a conexão deu certo
-                        if (cliente.GetStream().ReadByte() == 0x69)
+                        try
                         {
-                            Conectado = true;
-                            ClienteConectado(addr);
+                            // Envia um 0x34 para sinalizar que a conexão foi aceita
+                            cliente.GetStream().WriteByte(0x34);
+
+                            // Espera um 0x69 sinalizando que, realmente, a conexão deu certo
+                            if (cliente.GetStream().ReadByte() == 0x69)
+                            {
+                                Conectado = true;
+                                OnClienteConectado(addr);
+                            }
                         }
-                    } catch {
-                        ClienteDesconectado(addr);
+                        catch
+                        {
+                            OnClienteDesconectado(addr);
+                        }
                     }
+                    else
+                    {
+                        // Envia um 0x0 para sinalizar que a conexão foi rejeitada
+                        cliente.GetStream().WriteByte(0x0);
+                    }
+                } catch {
+                    cliente.Close();
                 }
-                else
-                {
-                    // Envia um 0x0 para sinalizar que a conexão foi rejeitada
-                    cliente.GetStream().WriteByte(0x0);
-                }
+
+                if (!Conectado)
+                    NomeRemoto = null;
             }
         }
 
