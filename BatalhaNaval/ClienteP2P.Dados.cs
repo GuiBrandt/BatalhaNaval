@@ -43,8 +43,12 @@ namespace BatalhaNaval
         /// Construtor
         /// </summary>
         /// <param name="tabuleiro">Tabuleiro com o qual se quer jogar</param>
+        /// <exception cref="Exception">Se o tabuleiro estiver incompleto</exception>
         public ClienteP2P(Tabuleiro tabuleiro) : this()
         {
+            if (!tabuleiro.EstaCompleto())
+                throw new Exception("Tabuleiro incompleto");
+
             Tabuleiro = tabuleiro;
             ClienteConectado += OnClienteConectado;
         }

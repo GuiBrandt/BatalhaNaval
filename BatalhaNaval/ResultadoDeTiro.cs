@@ -6,43 +6,61 @@ namespace BatalhaNaval
     /// Enumerador para resultados de tiro
     /// </summary>
     [Flags]
-    public enum ResultadoDeTiro
+    public enum ResultadoDeTiro : uint
     {
         // Resultado
-        Errou   = 0x000000,
-        Acertou = 0x100000,
-        Afundou = 0x200000 | Acertou,
+        Errou   = 0x00000000,
+        Acertou = 0x10000000,
+        Afundou = 0x20000000 | Acertou,
+    }
 
-        // Tipos de barco   
-        //
-        // Primeiro dígito: Tamanho
-        // Dígitos seguintes: Binário para ao ID do barco
-        PortaAvioes = 0x50001,
-        Encouracado = 0x40010,
-        Cruzador    = 0x30011,
-        Submarino   = 0x20100,
-        Destroier   = 0x20101
+    /// <summary>
+    /// Enumerador para os tipos de navio
+    /// 
+    /// É muita magia, não mexa
+    /// </summary>
+    public enum Navio : uint
+    {
+        PortaAvioes = 0x0150000,
+        Encouracado = 0x0240000,
+        Cruzador    = 0x0330000,
+        Submarino   = 0x0220000,
+        Destroier   = 0x0220001
+    }
+
+    /// <summary>
+    /// Classe de extensão para o enumerador de tipos de navio
+    /// </summary>
+    public static class Navio_Ex
+    {
+        /// <summary>
+        /// Obtém o tamanho do navio acertado por um tiro
+        /// </summary>
+        public static int Tamanho(this Navio nav)
+        {
+            return ((int)nav & 0xf0000) >> 4;
+        }
+
+        /// <summary>
+        /// Obtém o limite de um tipo de navio no mapa
+        /// </summary>
+        public static int Limite(this Navio nav)
+        {
+            return (((int)nav & 0xff00000) >> 5);
+        }
     }
 
     /// <summary>
     /// Classe de extensão para o enumerador de resultados de tiro
     /// </summary>
-    internal static class ResultadoDeTiro__Ex
+    public static class ResultadoDeTiro_Ex
     {
-        /// <summary>
-        /// Obtém o tamanho do navio acertado por um tiro
-        /// </summary>
-        public static int TamanhoDoNavio(this ResultadoDeTiro r)
-        {
-            return ((int)r & 0xf0000) >> 4;
-        }
-
         /// <summary>
         /// Obtém o tipo de navio acertado por um tiro
         /// </summary>
-        public static ResultadoDeTiro TipoDeNavio(this ResultadoDeTiro r)
+        public static Navio TipoDeNavio(this ResultadoDeTiro r)
         {
-            return (ResultadoDeTiro)((int)r & 0xfffff);
+            return (Navio)((int)r & 0xffffff);
         }
     }
 }
