@@ -66,6 +66,7 @@ namespace BatalhaNaval
                 if (atual != null && atual.Linha == row)
                 {
                     atual.TipoDeNavio = value.TipoDeNavio;
+                    atual.PrimeiraDoNavio = value.PrimeiraDoNavio;
                     atual.ProximaDoNavio = value.ProximaDoNavio;
                 }
                 else
@@ -162,11 +163,12 @@ namespace BatalhaNaval
 
             // Cria os nós cabeça
             for (int i = NumeroDeLinhas; i >= 0; --i)
-                aux = new Celula(-1, i, 0, null, aux);
+                aux = new Celula(-1, i, 0, null, null, null, aux);
             head.ProxVert = aux;
 
+            aux = null;
             for (int i = NumeroDeColunas; i >= 0; --i)
-                aux = new Celula(i, -1, 0, aux, null);
+                aux = new Celula(i, -1, 0, null, null, aux, null);
             head.ProxHorz = aux;
         }
 
@@ -214,8 +216,8 @@ namespace BatalhaNaval
             int len = tipo.Tamanho();
             Celula[] celulas = new Celula[len];
 
-            for (int i = celulas.Length, j = 0; i >= 0; --i, j++)
-                celulas[i] = new Celula(x + ix * j, y + iy * j, tipo, null, i == celulas.Length - 1 ? null : celulas[i + 1]);
+            for (int i = celulas.Length - 1; i >= 0; i--)
+                celulas[i] = new Celula(x + ix * i, y + iy * i, tipo, null, i == celulas.Length - 1 ? null : celulas[i + 1]);
             
             // Posiciona as células na matriz
             foreach (Celula celula in celulas)

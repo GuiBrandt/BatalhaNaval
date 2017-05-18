@@ -21,11 +21,11 @@ namespace BatalhaNaval
     /// </summary>
     public enum Navio : uint
     {
-        PortaAvioes = 0x0150000,
-        Encouracado = 0x0240000,
-        Cruzador    = 0x0330000,
-        Submarino   = 0x0220000,
-        Destroier   = 0x0220001
+        PortaAvioes = 0x150000,
+        Encouracado = 0x240000,
+        Cruzador    = 0x330000,
+        Submarino   = 0x220000,
+        Destroier   = 0x220001
     }
 
     /// <summary>
@@ -38,7 +38,7 @@ namespace BatalhaNaval
         /// </summary>
         public static int Tamanho(this Navio nav)
         {
-            return ((int)nav & 0xf0000) >> 4;
+            return (int)(((uint)nav & 0x0f0000) / 0x10000);
         }
 
         /// <summary>
@@ -46,7 +46,7 @@ namespace BatalhaNaval
         /// </summary>
         public static int Limite(this Navio nav)
         {
-            return (((int)nav & 0xff00000) >> 5);
+            return (int)((uint)nav / 0x100000);
         }
     }
 
@@ -60,7 +60,7 @@ namespace BatalhaNaval
         /// </summary>
         public static Navio TipoDeNavio(this ResultadoDeTiro r)
         {
-            return (Navio)((int)r & 0xffffff);
+            return (Navio)((int)r & 0xfffffff);
         }
     }
 }

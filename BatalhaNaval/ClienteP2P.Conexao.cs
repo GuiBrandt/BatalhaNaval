@@ -60,7 +60,7 @@ namespace BatalhaNaval
         /// <summary>
         /// Evento de cliente disponível detectado na rede. O retorno não é usado.
         /// </summary>
-        public event EventoComEnderecoIP ClienteDisponivel;
+        public event EventoComEnderecoIP OnClienteDisponivel;
 
         /// <summary>
         /// Evento de requisição de conexão com um cliente. 
@@ -92,7 +92,7 @@ namespace BatalhaNaval
         {
             Nome = nome;
 
-            servidorBroadcast = new UdpClient(new IPEndPoint(IPAddress.Broadcast, PortaBroadcast));
+            servidorBroadcast = new UdpClient(new IPEndPoint(IPAddress.Any, PortaBroadcast));
             servidorBroadcast.EnableBroadcast = true;
             servidorBroadcast.MulticastLoopback = false;
 
@@ -205,7 +205,7 @@ namespace BatalhaNaval
         private void SinalizarNaRede()
         {
             // Envia um 0 para todos os clientes na rede sinalizando que você existe
-            servidorBroadcast.Send(new byte[] { 0 }, 1);
+            servidorBroadcast.Send(new byte[] { 0 }, 1, new IPEndPoint(IPAddress.Broadcast, PortaBroadcast));
         }
 
         /// <summary>
@@ -222,7 +222,7 @@ namespace BatalhaNaval
 
                     if (!Conectado)
                         // Se recebeu dados, detectou um cliente na rede
-                        ClienteDisponivel(endPoint.Address);
+                        OnClienteDisponivel(endPoint.Address);
                 }
             }
             catch (SocketException) {}
