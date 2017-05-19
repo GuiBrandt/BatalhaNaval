@@ -42,11 +42,11 @@ namespace Teste
 
         private bool Cl_OnClienteDisponivel(System.Net.IPAddress addr)
         {
-            Invoke(new Action(() =>
-            {
-                if (!comboBox1.Items.Contains(addr))
-                    comboBox1.Items.Add(addr);
-            }));
+            if (InvokeRequired)
+                Invoke(new Action(() => { Cl_OnClienteDisponivel(addr); })); 
+                
+            if (!comboBox1.Items.Contains(addr))
+                comboBox1.Items.Add(addr);
 
             return true;
         }

@@ -10,7 +10,8 @@ namespace BatalhaNaval
     public partial class Tabuleiro
     {
         Celula head;
-
+        Dictionary<Navio, int> numeroDeNavios;
+         
         /// <summary>
         /// Obtém ou define a célula na posição especificada da matriz
         /// </summary>
@@ -93,12 +94,11 @@ namespace BatalhaNaval
                     // Se não, insere uma célula na posição dada
                     else
                     {
-                        Celula nova = value;
-                        nova.ProxHorz = antHorz.ProxHorz;
-                        nova.ProxVert = antVert.ProxVert;
+                        value.ProxHorz = antHorz.ProxHorz;
+                        value.ProxVert = antVert.ProxVert;
 
-                        antHorz.ProxHorz = nova;
-                        antVert.ProxVert = nova;
+                        antHorz.ProxHorz = value;
+                        antVert.ProxVert = value;
                     }
                 }
             }
@@ -170,6 +170,10 @@ namespace BatalhaNaval
             for (int i = NumeroDeColunas; i >= 0; --i)
                 aux = new Celula(i, -1, 0, null, null, aux, null);
             head.ProxHorz = aux;
+
+            numeroDeNavios = new Dictionary<Navio, int>();
+            foreach (Navio n in (Navio[])Enum.GetValues(typeof(Navio)))
+                numeroDeNavios.Add(n, 0);
         }
 
         /// <summary>
@@ -188,7 +192,7 @@ namespace BatalhaNaval
         /// <exception cref="Exception">Se o navio interseccionar com outro ou o tabuleiro já tiver navios demais do tipo passado</exception>
         public void PosicionarNavio(Navio tipo, int x, int y, int d)
         {
-            if (Contar(tipo) == tipo.Limite())
+            if (numeroDeNavios[tipo] == tipo.Limite())
                 throw new Exception("O tabuleiro já tem navios demais desse tipo");
 
             // Determina o incremento na posição X e Y para a direção dada
@@ -229,6 +233,8 @@ namespace BatalhaNaval
 
                 this[celula.Linha, celula.Coluna] = celula;
             }
+
+            numeroDeNavios[tipo]++;
         }
 
         /// <summary>
@@ -266,35 +272,6 @@ namespace BatalhaNaval
         }
 
         /// <summary>
-        /// Conta quantos navios de um certo tipo existem no mapa
-        /// </summary>
-        /// <param name="tipo">Tipo de navio</param>
-        /// <returns>O número de navios do tipo dado no mapa</returns>
-        private int Contar(Navio tipo)
-        {
-            int n = 0;
-
-            List<Celula> verificadas = new List<Celula>();
-
-            for (int i = 0; i < NumeroDeColunas; i++)
-            {
-                for (Celula atual = SentinelaParaColuna(i).ProxVert; atual != null; atual = atual.ProxVert)
-                {
-                    if (verificadas.Contains(atual))
-                        continue;
-
-                    if (atual.TipoDeNavio == tipo)
-                        n++;
-
-                    for (Celula nav = atual.PrimeiraDoNavio; nav.ProximaDoNavio != null; nav = nav.ProximaDoNavio)
-                        verificadas.Add(nav);
-                }
-            }
-
-            return n;
-        }
-
-        /// <summary>
         /// Verifica se o mapa tem todos os requisitos para ser usado no jogo
         /// O mapa é considerado completo se tiver o limite de cada tipo de navio
         /// </summary>
@@ -304,7 +281,7 @@ namespace BatalhaNaval
             Array navios = (Navio[])Enum.GetValues(typeof(Navio));
 
             foreach (Navio navio in navios)
-                if (Contar(navio) != navio.Limite())
+                if (numeroDeNavios[navio] != navio.Limite())
                     return false;
 
             return true;
