@@ -45,8 +45,9 @@ namespace Teste
             if (InvokeRequired)
                 Invoke(new Action(() => { Cl_OnClienteDisponivel(addr); })); 
                 
-            if (!comboBox1.Items.Contains(addr))
-                comboBox1.Items.Add(addr);
+            if (!(comboBox1?.IsDisposed ?? true))
+                if (!comboBox1.Items.Contains(addr))
+                    comboBox1.Items.Add(addr);
 
             return true;
         }

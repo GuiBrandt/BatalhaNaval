@@ -20,7 +20,7 @@ namespace BatalhaNaval
             /// <summary>
             /// Tipo de navio da célula
             /// </summary>
-            public Navio TipoDeNavio { get; set; }
+            public TipoDeNavio TipoDeNavio { get; set; }
 
             /// <summary>
             /// Número da coluna da célula
@@ -66,7 +66,7 @@ namespace BatalhaNaval
             /// <param name="prox">Próxima célula do mesmo navio</param>
             /// <param name="proxHorz">Próxima célula na horizontal</param>
             /// <param name="proxVert">Próxima célula na vertical</param>
-            public Celula(int col, int row, Navio tipo, Celula primeira, Celula prox, Celula proxHorz = null, Celula proxVert = null)
+            public Celula(int col, int row, TipoDeNavio tipo, Celula primeira, Celula prox, Celula proxHorz = null, Celula proxVert = null)
             {
                 Coluna = col;
                 Linha = row;

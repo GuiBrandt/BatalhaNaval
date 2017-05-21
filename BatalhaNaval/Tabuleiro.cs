@@ -10,8 +10,16 @@ namespace BatalhaNaval
     public partial class Tabuleiro
     {
         Celula head;
-        Dictionary<Navio, int> numeroDeNavios;
-         
+        Dictionary<TipoDeNavio, int> numeroDeNavios;
+
+        /// <summary>
+        /// Obtém um array com todos os navios do tabuleiro
+        /// </summary>
+        public Dictionary<int[], TipoDeNavio> Navios {
+            get;
+            private set;
+        }
+
         /// <summary>
         /// Obtém ou define a célula na posição especificada da matriz
         /// </summary>
@@ -25,7 +33,7 @@ namespace BatalhaNaval
                 // Se o número de coluna ou o número de linha desejados estiverem
                 // fora do limite do mapa, o acesso é inválido
                 if (col < 0 || row < 0 ||
-                    col > NumeroDeColunas || row > NumeroDeLinhas)
+                    col >= NumeroDeColunas || row >= NumeroDeLinhas)
                     throw new IndexOutOfRangeException("A coordenada especificada não se encontra na matriz");
 
                 Celula atual = SentinelaParaColuna(col);
@@ -48,7 +56,7 @@ namespace BatalhaNaval
                 // Se o número de coluna ou o número de linha desejados estiver
                 // fora do limite do mapa, o acesso é inválido
                 if (col < 0 || row < 0 ||
-                    col > NumeroDeColunas || row > NumeroDeLinhas)
+                    col >= NumeroDeColunas || row >= NumeroDeLinhas)
                     throw new IndexOutOfRangeException("A coordenada especificada não se encontra na matriz");
 
                 Celula atual = SentinelaParaColuna(col),
@@ -110,7 +118,7 @@ namespace BatalhaNaval
         /// <param name="col">Número da coluna</param>
         private Celula SentinelaParaColuna(int col)
         {
-            if (col < 0 || col > this.NumeroDeColunas)
+            if (col < 0 || col >= this.NumeroDeColunas)
                 throw new Exception("A coordenada especificada não se encontra na matriz");
 
             Celula cell = this.head;
@@ -126,7 +134,7 @@ namespace BatalhaNaval
         /// <param name="row">Número da linha</param>
         private Celula SentinelaParaLinha(int row)
         {
-            if (row < 0 || row > this.NumeroDeLinhas)
+            if (row < 0 || row >= this.NumeroDeLinhas)
                 throw new Exception("A coordenada especificada não se encontra na matriz");
 
             Celula cell = this.head;
@@ -157,7 +165,7 @@ namespace BatalhaNaval
         /// </summary>
         public Tabuleiro()
         {
-            this.head = new Celula(-1, -1, default(Navio), null, null);
+            this.head = new Celula(-1, -1, default(TipoDeNavio), null, null);
 
             Celula aux = null;
 
@@ -171,9 +179,11 @@ namespace BatalhaNaval
                 aux = new Celula(i, -1, 0, null, null, aux, null);
             head.ProxHorz = aux;
 
-            numeroDeNavios = new Dictionary<Navio, int>();
-            foreach (Navio n in (Navio[])Enum.GetValues(typeof(Navio)))
+            numeroDeNavios = new Dictionary<TipoDeNavio, int>();
+            foreach (TipoDeNavio n in (TipoDeNavio[])Enum.GetValues(typeof(TipoDeNavio)))
                 numeroDeNavios.Add(n, 0);
+
+            Navios = new Dictionary<int[], TipoDeNavio>();
         }
 
         /// <summary>
@@ -190,7 +200,7 @@ namespace BatalhaNaval
         /// <exception cref="IndexOutOfRangeException">Se o navio sair dos limites do mapa</exception>
         /// <exception cref="ArgumentException">Se a direção for inválida</exception>
         /// <exception cref="Exception">Se o navio interseccionar com outro ou o tabuleiro já tiver navios demais do tipo passado</exception>
-        public void PosicionarNavio(Navio tipo, int x, int y, int d)
+        public void PosicionarNavio(TipoDeNavio tipo, int x, int y, int d)
         {
             if (numeroDeNavios[tipo] == tipo.Limite())
                 throw new Exception("O tabuleiro já tem navios demais desse tipo");
@@ -221,20 +231,28 @@ namespace BatalhaNaval
             Celula[] celulas = new Celula[len];
 
             for (int i = celulas.Length - 1; i >= 0; i--)
-                celulas[i] = new Celula(x + ix * i, y + iy * i, tipo, null, i == celulas.Length - 1 ? null : celulas[i + 1]);
+            {
+                int nx = x + ix * i, ny = y + iy * i;
+                if (nx < 0 || nx >= NumeroDeColunas || ny < 0 || ny >= NumeroDeLinhas)
+                    throw new Exception("Navio fora do tabuleiro");
+                celulas[i] = new Celula(nx, ny, tipo, null, i == celulas.Length - 1 ? null : celulas[i + 1]);
+            }
             
-            // Posiciona as células na matriz
+            // Define a primeiro célula do navio para cada célula do navio e verifica intersecção
             foreach (Celula celula in celulas)
             {
                 celula.PrimeiraDoNavio = celulas[0];   // Define o ponteiro para a primeira célula do navio posicionado
 
                 if (this[celula.Linha, celula.Coluna] != null)
                     throw new Exception("Intersecção de navios");
-
-                this[celula.Linha, celula.Coluna] = celula;
             }
 
+            // Posiciona as células na matriz
+            foreach (Celula celula in celulas)
+                this[celula.Linha, celula.Coluna] = celula;
+
             numeroDeNavios[tipo]++;
+            Navios.Add(new int[] { x, y }, tipo);
         }
 
         /// <summary>
@@ -278,9 +296,9 @@ namespace BatalhaNaval
         /// <returns>Verdadeiro se o mapa estiver completo e falso caso contrário</returns>
         public bool EstaCompleto()
         {
-            Array navios = (Navio[])Enum.GetValues(typeof(Navio));
+            Array navios = (TipoDeNavio[])Enum.GetValues(typeof(TipoDeNavio));
 
-            foreach (Navio navio in navios)
+            foreach (TipoDeNavio navio in navios)
                 if (numeroDeNavios[navio] != navio.Limite())
                     return false;
 

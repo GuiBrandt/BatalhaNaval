@@ -42,8 +42,9 @@
   <ItemGroup>
     <Compile Include="ClienteP2P.Dados.cs" />
     <Compile Include="ClienteP2P.Conexao.cs" />
-    <Compile Include="Mapa.Celula.cs" />
-    <Compile Include="Mapa.cs" />
+    <Compile Include="Tabuleiro.Celula.cs" />
+    <Compile Include="Tabuleiro.cs" />
+    <Compile Include="Navio.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ResultadoDeTiro.cs" />
     <Compile Include="Tiro.cs" />
