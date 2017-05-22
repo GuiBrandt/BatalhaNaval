@@ -10,7 +10,6 @@ namespace BatalhaNaval
     public partial class Tabuleiro
     {
         Celula head;
-        Dictionary<TipoDeNavio, int> numeroDeNavios;
 
         /// <summary>
         /// Obtém um array com todos os navios do tabuleiro
@@ -129,6 +128,20 @@ namespace BatalhaNaval
         }
 
         /// <summary>
+        /// Obtém o número de navios de um certo tipo no tabuleiro
+        /// </summary>
+        /// <param name="tipoDeNavio">O tipo do navio</param>
+        /// <returns>O número de navios de um certo tipo no tabuleiro</returns>
+        public int Contar(TipoDeNavio tipoDeNavio)
+        {
+            int n = 0;
+            foreach (TipoDeNavio navio in Navios.Values)
+                if (navio == tipoDeNavio) n++;
+
+            return n;
+        }
+
+        /// <summary>
         /// Obtém a célula-cabeça para a linha desejada
         /// </summary>
         /// <param name="row">Número da linha</param>
@@ -179,10 +192,6 @@ namespace BatalhaNaval
                 aux = new Celula(i, -1, 0, null, null, aux, null);
             head.ProxHorz = aux;
 
-            numeroDeNavios = new Dictionary<TipoDeNavio, int>();
-            foreach (TipoDeNavio n in (TipoDeNavio[])Enum.GetValues(typeof(TipoDeNavio)))
-                numeroDeNavios.Add(n, 0);
-
             Navios = new Dictionary<int[], TipoDeNavio>();
         }
 
@@ -202,7 +211,7 @@ namespace BatalhaNaval
         /// <exception cref="Exception">Se o navio interseccionar com outro ou o tabuleiro já tiver navios demais do tipo passado</exception>
         public void PosicionarNavio(TipoDeNavio tipo, int x, int y, int d)
         {
-            if (numeroDeNavios[tipo] == tipo.Limite())
+            if (Contar(tipo) == tipo.Limite())
                 throw new Exception("O tabuleiro já tem navios demais desse tipo");
 
             // Determina o incremento na posição X e Y para a direção dada
@@ -250,8 +259,7 @@ namespace BatalhaNaval
             // Posiciona as células na matriz
             foreach (Celula celula in celulas)
                 this[celula.Linha, celula.Coluna] = celula;
-
-            numeroDeNavios[tipo]++;
+            
             Navios.Add(new int[] { x, y }, tipo);
         }
 
@@ -299,7 +307,7 @@ namespace BatalhaNaval
             Array navios = (TipoDeNavio[])Enum.GetValues(typeof(TipoDeNavio));
 
             foreach (TipoDeNavio navio in navios)
-                if (numeroDeNavios[navio] != navio.Limite())
+                if (Contar(navio) != navio.Limite())
                     return false;
 
             return true;
