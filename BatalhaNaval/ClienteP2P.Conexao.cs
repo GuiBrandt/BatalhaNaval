@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -55,7 +56,15 @@ namespace BatalhaNaval
         /// </summary>
         /// <param name="addr">Endereço IP passado para o evento</param>
         /// <returns>True ou False conforme necessário.</returns>
-        public delegate bool EventoComEnderecoIP(IPAddress addr);
+        public delegate void EventoComEnderecoIP(IPAddress addr);
+
+        /// <summary>
+        /// Delegado de evento que recebe um endereço IP por parâmetro
+        /// </summary>
+        /// <param name="addr">Endereço IP passado para o evento</param>
+        /// <param name="nome">Nome do cliente remoto</param>
+        /// <returns>True ou False conforme necessário.</returns>
+        public delegate bool EventoDeRequisicaoDeConexao(IPAddress addr);
 
         /// <summary>
         /// Evento de cliente disponível detectado na rede. O retorno não é usado.
@@ -66,7 +75,7 @@ namespace BatalhaNaval
         /// Evento de requisição de conexão com um cliente. 
         /// O retorno indica se a conexão deve ser aceita.
         /// </summary>
-        public event EventoComEnderecoIP OnClienteRequisitandoConexao;
+        public event EventoDeRequisicaoDeConexao OnClienteRequisitandoConexao;
 
         /// <summary>
         /// Evento de conexão bem sucedida com um cliente.
@@ -124,11 +133,14 @@ namespace BatalhaNaval
         {
             try
             {
-                cliente = new TcpClient(new IPEndPoint(ipRemoto, PortaTcp));
+                cliente = new TcpClient();
+                cliente.Connect(ipRemoto, PortaTcp);
                 BinaryWriter writer = new BinaryWriter(cliente.GetStream());
 
                 // Envia o nome para o cliente remoto
                 writer.Write(Nome);
+
+                while (!cliente.GetStream().DataAvailable);
 
                 // Se recebeu um 0x34, a conexão deu certo
                 if (cliente.GetStream().ReadByte() == 0x34)
@@ -173,6 +185,8 @@ namespace BatalhaNaval
                             // Envia um 0x34 para sinalizar que a conexão foi aceita
                             cliente.GetStream().WriteByte(0x34);
 
+                            while (!cliente.GetStream().DataAvailable);
+
                             // Espera um 0x69 sinalizando que, realmente, a conexão deu certo
                             if (cliente.GetStream().ReadByte() == 0x69)
                             {
@@ -204,8 +218,9 @@ namespace BatalhaNaval
         /// </summary>
         private void SinalizarNaRede()
         {
-            // Envia um 0 para todos os clientes na rede sinalizando que você existe
-            servidorBroadcast.Send(new byte[] { 0 }, 1, new IPEndPoint(IPAddress.Broadcast, PortaBroadcast));
+            if (!Conectado)
+                // Envia um 0 para todos os clientes na rede sinalizando que você existe
+                servidorBroadcast.Send(new byte[] { 0 }, 1, new IPEndPoint(IPAddress.Broadcast, PortaBroadcast));
         }
 
         /// <summary>
@@ -220,9 +235,12 @@ namespace BatalhaNaval
                     IPEndPoint endPoint = new IPEndPoint(IPAddress.Any, 0);
                     byte[] data = servidorBroadcast.Receive(ref endPoint);
 
+                    if (new List<IPAddress>(Dns.GetHostAddresses(System.Net.Dns.GetHostName())).Contains(endPoint.Address))
+                        continue;
+
                     if (!Conectado)
                         // Se recebeu dados, detectou um cliente na rede
-                        OnClienteDisponivel(endPoint.Address);
+                        OnClienteDisponivel(endPoint.Address.MapToIPv4());
                 }
             }
             catch (SocketException) {}

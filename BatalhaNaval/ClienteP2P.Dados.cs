@@ -87,12 +87,10 @@ namespace BatalhaNaval
         /// <summary>
         /// Evento de desconexão
         /// </summary>
-        private bool Dados_OnClienteDesconectado(IPAddress addr)
+        private void Dados_OnClienteDesconectado(IPAddress addr)
         {
             if (addr.Equals((cliente.Client.RemoteEndPoint as IPEndPoint).Address))
                 Conectado = false;
-
-            return true;
         }
 
         /// <summary>
