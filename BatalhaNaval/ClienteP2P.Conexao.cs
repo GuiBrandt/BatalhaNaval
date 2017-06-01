@@ -135,18 +135,18 @@ namespace BatalhaNaval
             {
                 cliente = new TcpClient();
                 cliente.Connect(ipRemoto, PortaTcp);
-                BinaryWriter writer = new BinaryWriter(cliente.GetStream());
+
+                StreamWriter writer = new StreamWriter(cliente.GetStream());
 
                 // Envia o nome para o cliente remoto
-                writer.Write(Nome);
+                writer.WriteLine(Nome);
 
-                while (!cliente.GetStream().DataAvailable);
-
-                // Se recebeu um 0x34, a conexão deu certo
-                if (cliente.GetStream().ReadByte() == 0x34)
+                // Lê a confirmação
+                StreamReader reader = new StreamReader(cliente.GetStream());
+                if (reader.ReadLine() == "OK")
                 {
-                    // Envia 0x69 para indicar reconhecimento da conexão
-                    cliente.GetStream().WriteByte(0x69);
+                    // Envia uma confirmação
+                    writer.WriteLine("OK");
 
                     return true;
                 }
@@ -169,12 +169,13 @@ namespace BatalhaNaval
         {
             while (!Conectado)
             {
-                cliente = servidor.AcceptTcpClient();
-
                 try
                 {
-                    BinaryReader reader = new BinaryReader(cliente.GetStream());
-                    NomeRemoto = reader.ReadString();
+                    cliente = servidor.AcceptTcpClient();
+
+                    StreamReader reader = new StreamReader(cliente.GetStream());
+                    StreamWriter writer = new StreamWriter(cliente.GetStream());
+                    NomeRemoto = reader.ReadLine();
 
                     IPAddress addr = (cliente.Client.RemoteEndPoint as IPEndPoint).Address;
 
@@ -182,30 +183,32 @@ namespace BatalhaNaval
                     {
                         try
                         {
-                            // Envia um 0x34 para sinalizar que a conexão foi aceita
-                            cliente.GetStream().WriteByte(0x34);
+                            // Envia uma confirmação
+                            writer.WriteLine("OK");
 
-                            while (!cliente.GetStream().DataAvailable);
-
-                            // Espera um 0x69 sinalizando que, realmente, a conexão deu certo
-                            if (cliente.GetStream().ReadByte() == 0x69)
+                            // Espera a confirmação definitiva de conexão
+                            if (reader.ReadLine() == "OK")
                             {
                                 Conectado = true;
                                 OnClienteConectado(addr);
                             }
+                            else
+                                throw new System.Exception("Falhou :(");
                         }
                         catch
                         {
                             OnClienteDesconectado(addr);
+                            throw new System.Exception();
                         }
                     }
                     else
                     {
-                        // Envia um 0x0 para sinalizar que a conexão foi rejeitada
-                        cliente.GetStream().WriteByte(0x0);
+                        // Rejeita a conexão
+                        writer.WriteLine("Reject");
                     }
                 } catch {
-                    cliente.Close();
+                    if (cliente != null)
+                        cliente.Close();
                 }
 
                 if (!Conectado)
@@ -218,9 +221,13 @@ namespace BatalhaNaval
         /// </summary>
         private void SinalizarNaRede()
         {
-            if (!Conectado)
-                // Envia um 0 para todos os clientes na rede sinalizando que você existe
-                servidorBroadcast.Send(new byte[] { 0 }, 1, new IPEndPoint(IPAddress.Broadcast, PortaBroadcast));
+            try
+            {
+                if (!Conectado)
+                    // Envia um 0 para todos os clientes na rede sinalizando que você existe
+                    servidorBroadcast.Send(new byte[] { 0 }, 1, new IPEndPoint(IPAddress.Broadcast, PortaBroadcast));
+            }
+            catch { }
         }
 
         /// <summary>
@@ -235,7 +242,7 @@ namespace BatalhaNaval
                     IPEndPoint endPoint = new IPEndPoint(IPAddress.Any, 0);
                     byte[] data = servidorBroadcast.Receive(ref endPoint);
 
-                    if (new List<IPAddress>(Dns.GetHostAddresses(System.Net.Dns.GetHostName())).Contains(endPoint.Address))
+                    if (new List<IPAddress>(Dns.GetHostAddresses(Dns.GetHostName())).Contains(endPoint.Address))
                         continue;
 
                     if (!Conectado)
@@ -244,6 +251,15 @@ namespace BatalhaNaval
                 }
             }
             catch (SocketException) {}
+        }
+
+        /// <summary>
+        /// Fecha o cliente
+        /// </summary>
+        public void Close()
+        {
+            servidorBroadcast.Close();
+            servidor.Stop();
         }
     }
 }
