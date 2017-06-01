@@ -130,7 +130,7 @@ namespace BatalhaNaval
         /// </summary>
         /// <param name="x">Posição X do tiro</param>
         /// <param name="y">Posição Y do tiro</param>
-        private void DarTiro(int x, int y)
+        public void DarTiro(int x, int y)
         {
             tiro = new Tiro(x, y);
             mutexTiro.ReleaseMutex();
