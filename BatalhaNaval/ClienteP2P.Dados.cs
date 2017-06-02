@@ -90,6 +90,7 @@ namespace BatalhaNaval
                 throw new Exception("Tabuleiro incompleto");
 
             mutexTiro = new Mutex();
+            rnd = new Random();
             PodeAtirar = true;
             Tabuleiro = tabuleiro;
             OnClienteConectado += OnClienteConectado;
