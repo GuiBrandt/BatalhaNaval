@@ -143,6 +143,8 @@ namespace BatalhaNaval
         private void Jogar()
         {
             StreamWriter writer = new StreamWriter(cliente.GetStream());
+            writer.AutoFlush = true;
+
             StreamReader reader = new StreamReader(cliente.GetStream());
 
             // Envio de mensagens

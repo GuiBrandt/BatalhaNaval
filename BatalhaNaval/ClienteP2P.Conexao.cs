@@ -137,6 +137,7 @@ namespace BatalhaNaval
                 cliente.Connect(ipRemoto, PortaTcp);
 
                 StreamWriter writer = new StreamWriter(cliente.GetStream());
+                writer.AutoFlush = true;
 
                 // Envia o nome para o cliente remoto
                 writer.WriteLine(Nome);
@@ -175,6 +176,8 @@ namespace BatalhaNaval
 
                     StreamReader reader = new StreamReader(cliente.GetStream());
                     StreamWriter writer = new StreamWriter(cliente.GetStream());
+                    writer.AutoFlush = true;
+
                     NomeRemoto = reader.ReadLine();
 
                     IPAddress addr = (cliente.Client.RemoteEndPoint as IPEndPoint).Address;
