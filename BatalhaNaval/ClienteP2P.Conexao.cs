@@ -137,18 +137,21 @@ namespace BatalhaNaval
                 cliente.Connect(ipRemoto, PortaTcp);
 
                 StreamWriter writer = new StreamWriter(cliente.GetStream());
+                StreamReader reader = new StreamReader(cliente.GetStream());
                 writer.AutoFlush = true;
 
                 // Envia o nome para o cliente remoto
                 writer.WriteLine(Nome);
 
                 // Lê a confirmação
-                StreamReader reader = new StreamReader(cliente.GetStream());
                 if (reader.ReadLine() == "OK")
                 {
                     // Envia uma confirmação
                     writer.WriteLine("OK");
 
+                    NomeRemoto = reader.ReadLine();
+
+                    OnClienteConectado(ipRemoto);
                     return true;
                 }
 
@@ -188,6 +191,7 @@ namespace BatalhaNaval
                         {
                             // Envia uma confirmação
                             writer.WriteLine("OK");
+                            writer.WriteLine(Nome);
 
                             // Espera a confirmação definitiva de conexão
                             if (reader.ReadLine() == "OK")
