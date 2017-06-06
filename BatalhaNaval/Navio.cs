@@ -1,5 +1,13 @@
 ﻿namespace BatalhaNaval
 {
+    public enum Direcao
+    {
+        Baixo    = 0,
+        Esquerda = 1,
+        Cima     = 2,
+        Direita  = 3
+    }
+
     /// <summary>
     /// Enumerador para os tipos de navio
     /// 

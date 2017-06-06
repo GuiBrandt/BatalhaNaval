@@ -204,12 +204,11 @@ namespace BatalhaNaval
         /// <param name="tipo">Tipo de navio a ser posicionado</param>
         /// <param name="x">Posição X do navio</param>
         /// <param name="y">Posição Y do navio</param>
-        /// <param name="d">Direção do navio. Deve estar entre 0 e 3, sendo que 
-        /// 0 = baixo, 1 = esquerda, 2 = cima e 3 = direita.</param>
+        /// <param name="d">Direção do navio.</param>
         /// <exception cref="IndexOutOfRangeException">Se o navio sair dos limites do mapa</exception>
         /// <exception cref="ArgumentException">Se a direção for inválida</exception>
         /// <exception cref="Exception">Se o navio interseccionar com outro ou o tabuleiro já tiver navios demais do tipo passado</exception>
-        public void PosicionarNavio(TipoDeNavio tipo, int x, int y, int d)
+        public void PosicionarNavio(TipoDeNavio tipo, int x, int y, Direcao d)
         {
             if (Contar(tipo) == tipo.Limite())
                 throw new Exception("O tabuleiro já tem navios demais desse tipo");
@@ -217,7 +216,7 @@ namespace BatalhaNaval
             // Determina o incremento na posição X e Y para a direção dada
             int ix = 0, iy = 0;
 
-            switch (d)
+            switch ((int)d)
             {
                 case 0:
                     iy = 1;
