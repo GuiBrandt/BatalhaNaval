@@ -138,7 +138,9 @@ namespace BatalhaNaval
             servidor.Start();
             taskBroadcasting = Task.Run(() => TratarBroadcast());
             taskConexao = Task.Run(() => ResponderClientes());
+
             sinalizador.Start();
+	    confirmador.Start();
         }
 
         /// <summary>
