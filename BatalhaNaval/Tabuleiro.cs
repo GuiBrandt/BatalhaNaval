@@ -259,7 +259,7 @@ namespace BatalhaNaval
             foreach (Celula celula in celulas)
                 this[celula.Linha, celula.Coluna] = celula;
             
-            Navios.Add(new int[] { x, y, d }, tipo);
+            Navios.Add(new int[] { x, y, (int) d }, tipo);
         }
 
         /// <summary>
