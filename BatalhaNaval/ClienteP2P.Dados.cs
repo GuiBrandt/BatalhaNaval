@@ -134,7 +134,15 @@ namespace BatalhaNaval
         public void DarTiro(int x, int y)
         {
             tiro = new Tiro(x, y);
-            mutexTiro.ReleaseMutex();
+
+            try
+            {
+                mutexTiro.ReleaseMutex();
+            }
+            catch (Exception e)
+            {
+                
+            }
         }
 
         /// <summary>
