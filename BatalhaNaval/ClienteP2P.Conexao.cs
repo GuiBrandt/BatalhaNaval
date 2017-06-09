@@ -302,7 +302,7 @@ namespace BatalhaNaval
                     //Mesmo com a condição do for.
                     if (n < clientes.Count)
                     {
-                        OnClienteDesconectado(clientes[n]);
+                        OnClienteIndisponivel(clientes[n]);
                         clientes.RemoveAt(n);
                     }
                 }
