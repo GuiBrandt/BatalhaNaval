@@ -88,7 +88,7 @@ namespace BatalhaNaval
             rnd = new Random();
             waitHandle = new AutoResetEvent(false);
             Tabuleiro = tabuleiro;
-            OnClienteConectado += OnClienteConectado;
+            OnClienteConectado += Dados_OnClienteConectado;
             OnClienteDesconectado += Dados_OnClienteDesconectado;
             OnTiroRecebido += Dados_OnTiroRecebido;
         }
@@ -114,10 +114,9 @@ namespace BatalhaNaval
         /// Evento de sucesso de conexão com cliente
         /// </summary>
         /// <param name="addr">Endereço do cliente</param>
-        private bool Dados_OnClienteConectado(IPAddress addr)
+        private void Dados_OnClienteConectado(IPAddress addr)
         {
             Task.Run(() => Jogar());
-            return true;
         }
 
         /// <summary>

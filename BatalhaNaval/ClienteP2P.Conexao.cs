@@ -298,7 +298,7 @@ namespace BatalhaNaval
         /// </summary>
         private void ConfirmarClientes()
         {
-            for (int n = 0; n < clientes.Count; n++)
+            for (int n = clientes.Count - 1; n >= 0; n--)
                 try
                 {
                     TcpClient tcp = new TcpClient();
