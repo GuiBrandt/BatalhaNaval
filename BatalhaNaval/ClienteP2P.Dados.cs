@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.AccessControl;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
@@ -52,11 +53,6 @@ namespace BatalhaNaval
         /// Evento de tiro recebido
         /// </summary>
         public event EventoDeTiroRecebido OnTiroRecebido;
-        
-        /// <summary>
-        /// Sinaliza se o cliente pode atirar ou não
-        /// </summary>
-        private bool PodeAtirar { get; set; }
 
         /// <summary>
         /// Mapa usado pelo cliente
@@ -66,12 +62,12 @@ namespace BatalhaNaval
         /// <summary>
         /// Mutex para esperar um tiro
         /// </summary>
-        private Mutex mutexTiro;
+        private AutoResetEvent waitHandle;
 
         /// <summary>
         /// Tiro a ser dado
         /// </summary>
-        private Tiro tiro;
+        private Tiro _tiro;
 
         /// <summary>
         /// Aleatório
@@ -89,9 +85,8 @@ namespace BatalhaNaval
             if (!tabuleiro.EstaCompleto())
                 throw new Exception("Tabuleiro incompleto");
 
-            mutexTiro = new Mutex();
             rnd = new Random();
-            PodeAtirar = true;
+            waitHandle = new AutoResetEvent(false);
             Tabuleiro = tabuleiro;
             OnClienteConectado += OnClienteConectado;
             OnClienteDesconectado += Dados_OnClienteDesconectado;
@@ -104,7 +99,6 @@ namespace BatalhaNaval
         private void Dados_OnTiroRecebido(Tiro t)
         {
             t.Aplicar(Tabuleiro);
-            PodeAtirar = true;
         }
 
         /// <summary>
@@ -125,7 +119,7 @@ namespace BatalhaNaval
             Task.Run(() => Jogar());
             return true;
         }
-        
+
         /// <summary>
         /// Envia um tiro para o cliente
         /// </summary>
@@ -133,8 +127,9 @@ namespace BatalhaNaval
         /// <param name="y">Posição Y do tiro</param>
         public void DarTiro(int x, int y)
         {
-            tiro = new Tiro(x, y);
-            mutexTiro.ReleaseMutex();
+            _tiro = new Tiro(x, y);
+
+            waitHandle.Set();
         }
 
         /// <summary>
@@ -146,64 +141,39 @@ namespace BatalhaNaval
             writer.AutoFlush = true;
 
             StreamReader reader = new StreamReader(cliente.GetStream());
-
-            // Envio de mensagens
-            Mutex mutex = new Mutex();
-
-            Task.Run(() =>
-            {
-                try {
-                    while (Conectado)
-                    {
-                        if (!PodeAtirar)
-                            mutex.WaitOne();
-                            
-                        lock (writer)
-                        {
-                            OnDarTiro();
-                            mutexTiro.WaitOne(TIMEOUT_TIRO);
-
-                            if (tiro == null)
-                                tiro = new Tiro(rnd.Next(Tabuleiro.NumeroDeColunas), rnd.Next(Tabuleiro.NumeroDeLinhas));
-
-                            writer.WriteLine("Tiro " + tiro.X + "," + tiro.Y);
-                        }
-
-                        PodeAtirar = false;
-
-                        lock (reader)
-                        {
-                            string r = reader.ReadLine();
-                            OnResultadoDeTiro(tiro, (ResultadoDeTiro)Convert.ToUInt32(r));
-                        }
-
-                        tiro = null;
-                    }
-                } catch {
-                    OnClienteDesconectado((cliente.Client.RemoteEndPoint as IPEndPoint).Address);
-                }
-            });
-
-            // Leitura de mensagens
+            
             try
             {
                 while (Conectado)
                 {
-                    lock (reader)
-                    lock (writer)
+                    OnDarTiro();
+                    waitHandle.WaitOne(TIMEOUT_TIRO); 
+
+                    if (_tiro == null)
+                        _tiro = new Tiro(rnd.Next(Tabuleiro.NumeroDeColunas), rnd.Next(Tabuleiro.NumeroDeLinhas));
+                        
+                    writer.WriteLine("Tiro " + _tiro.X + "," + _tiro.Y);
+                    
+                    string r = reader.ReadLine();
+                    OnResultadoDeTiro(_tiro, (ResultadoDeTiro)Convert.ToUInt32(r));
+
+                    _tiro = null;
+
+                    string line;
+                    
+                    line = reader.ReadLine();
+
+                    if (line.StartsWith("Tiro "))
                     {
-                        string line = reader.ReadLine();
-                        if (line.StartsWith("Tiro "))
-                        {
-                            int x = Convert.ToInt32(line.Substring(5, line.IndexOf(',') - 5));
-                            int y = Convert.ToInt32(line.Substring(line.IndexOf(',') + 1));
-                            OnTiroRecebido(new Tiro(x, y));
-                                
+                        int x = Convert.ToInt32(line.Substring(5, line.IndexOf(',') - 5));
+                        int y = Convert.ToInt32(line.Substring(line.IndexOf(',') + 1));
+                        OnTiroRecebido(new Tiro(x, y));
+                        
+                        lock(writer)
                             writer.WriteLine(((uint)Tabuleiro.Atirar(x, y)).ToString());
-                            PodeAtirar = true;
-                            mutex.ReleaseMutex();
-                        }
                     }
+
+                    waitHandle.Reset();
                 }
             } catch {
                 OnClienteDesconectado((cliente.Client.RemoteEndPoint as IPEndPoint).Address);
