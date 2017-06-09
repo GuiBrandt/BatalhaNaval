@@ -17,6 +17,8 @@ namespace BatalhaNaval
         /// </summary>
         const int PortaTcp = 1337;
 
+        const int PortaConfirmacao = 6666;
+
         /// <summary>
         /// Porta onde o servidor de broadcast procura conexões
         /// </summary>
@@ -28,6 +30,11 @@ namespace BatalhaNaval
         const double IntervaloSinalizador = 1000;
 
         /// <summary>
+        /// Intervalo do timer confirmador
+        /// </summary>
+        const double IntervaloConfirmador = 500;
+
+        /// <summary>
         /// Nome do cliente, usado para se identificar para os clientes remotos
         /// </summary>
         public string Nome { get; private set; }
@@ -37,19 +44,22 @@ namespace BatalhaNaval
         /// </summary>
         public string NomeRemoto { get; private set; }
 
+        //Lista com os clientes conectados na rede
+        List<IPAddress> clientes;
+
         // Servidor UDP para broadcasting, é isso que lista os IPs disponíveis para conexão
         // e responde requisições feitas por outros hosts para listar os computadores na rede
         UdpClient servidorBroadcast;
 
         // Servidor e clientes TCP para comunicação com os pontos remotos
-        TcpListener servidor;
+        TcpListener servidor, servidorConfirmacao;
         TcpClient cliente;
 
         // Timer usado para sinalizar para os computadores da rede que você existe
-        Timer sinalizador;
+        Timer sinalizador, confirmador;
 
         // Tasks
-        Task taskBroadcasting, taskConexao;
+        Task taskBroadcasting, taskConexao, taskConfirmacao;
 
         /// <summary>
         /// Delegado de evento que recebe um endereço IP por parâmetro
@@ -70,6 +80,11 @@ namespace BatalhaNaval
         /// Evento de cliente disponível detectado na rede. O retorno não é usado.
         /// </summary>
         public event EventoComEnderecoIP OnClienteDisponivel;
+
+        /// <summary>
+        /// Indica quando um cliente desconecta da rede. O retorno não é usado.
+        /// </summary>
+        public event EventoComEnderecoIP OnClienteIndisponivel;
 
         /// <summary>
         /// Evento de requisição de conexão com um cliente. 
@@ -106,10 +121,14 @@ namespace BatalhaNaval
             servidorBroadcast.MulticastLoopback = false;
 
             servidor = new TcpListener(IPAddress.Any, PortaTcp);
+            servidorConfirmacao = new TcpListener(IPAddress.Any, PortaConfirmacao);
 
             Conectado = false;
             sinalizador = new Timer(IntervaloSinalizador);
             sinalizador.Elapsed += (object sender, ElapsedEventArgs e) => SinalizarNaRede();
+
+            confirmador = new Timer(IntervaloConfirmador);
+            confirmador.Elapsed += (object sender, ElapsedEventArgs e) => ConfirmarClientes();
         }
 
         /// <summary>
@@ -117,10 +136,17 @@ namespace BatalhaNaval
         /// </summary>
         public void Iniciar()
         {
+            clientes = new List<IPAddress>();
+
             servidor.Start();
+            servidorConfirmacao.Start();
+
             taskBroadcasting = Task.Run(() => TratarBroadcast());
             taskConexao = Task.Run(() => ResponderClientes());
+            taskConfirmacao = Task.Run(() => AceitarConfirmacoes());
+
             sinalizador.Start();
+	        confirmador.Start();
         }
 
         /// <summary>
@@ -253,11 +279,55 @@ namespace BatalhaNaval
                         continue;
 
                     if (!Conectado)
+                    {
                         // Se recebeu dados, detectou um cliente na rede
-                        OnClienteDisponivel(endPoint.Address.MapToIPv4());
+                        IPAddress ip = endPoint.Address.MapToIPv4();
+                        OnClienteDisponivel(ip);
+
+                        if (!clientes.Contains(ip))
+                            clientes.Add(ip);
+                    }
+                        
                 }
             }
             catch (SocketException) {}
+        }
+
+        /// <summary>
+        /// Timer para tentar se conectar aos clientes encontrados, confirmando se ainda estão vivos.
+        /// </summary>
+        private void ConfirmarClientes()
+        {
+            for (int n = 0; n < clientes.Count; n++)
+                try
+                {
+                    TcpClient tcp = new TcpClient();
+                    tcp.Connect(clientes[n], PortaConfirmacao);
+                    tcp.Close();
+                }
+                catch
+                {
+                    //As vezes o n fica maior que o limite de clientes.
+                    //Sim,
+                    //Mesmo com a condição do for.
+                    if (n < clientes.Count)
+                    {
+                        OnClienteIndisponivel(clientes[n]);
+                        clientes.RemoveAt(n);
+                    }
+                }
+        }
+
+        /// <summary>
+        /// Thread que aceita usuários tentando se conecar para a confirmação.
+        /// </summary>
+        private void AceitarConfirmacoes()
+        {
+            while (true)
+            {
+                TcpClient tcp = servidorConfirmacao.AcceptTcpClient();
+                tcp.Close();
+            }
         }
 
         /// <summary>
@@ -266,6 +336,8 @@ namespace BatalhaNaval
         public void Close()
         {
             servidorBroadcast.Close();
+
+            servidorConfirmacao.Stop();
             servidor.Stop();
         }
     }
