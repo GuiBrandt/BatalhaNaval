@@ -96,6 +96,8 @@ namespace BatalhaNaval
 
             rnd = new Random();
             waitHandle = new AutoResetEvent(false);
+            TirosDados = new ListaDeTiros();
+            TirosRecebidos = new ListaDeTiros();
             Tabuleiro = tabuleiro;
             OnClienteConectado += Dados_OnClienteConectado;
             OnClienteDesconectado += Dados_OnClienteDesconectado;
@@ -193,7 +195,9 @@ namespace BatalhaNaval
 
                     ResultadoDeTiro resultado = (ResultadoDeTiro)Convert.ToUInt32(r);
                     TirosDados.Add(_tiro, resultado);
-                    Task.Run(() => OnResultadoDeTiro(new Tiro(_tiro.X, _tiro.Y), resultado));
+
+                    Tiro t = _tiro;
+                    Task.Run(() => OnResultadoDeTiro(new Tiro(t.X, t.Y), resultado));
 
                     _tiro = null;
 
