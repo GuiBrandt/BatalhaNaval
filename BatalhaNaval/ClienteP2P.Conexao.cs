@@ -17,6 +17,9 @@ namespace BatalhaNaval
         /// </summary>
         const int PortaTcp = 1337;
 
+        /// <summary>
+        /// Porta para o servidor de confirmação Stay Alive
+        /// </summary>
         const int PortaConfirmacao = 6666;
 
         /// <summary>
@@ -129,6 +132,17 @@ namespace BatalhaNaval
 
             confirmador = new Timer(IntervaloConfirmador);
             confirmador.Elapsed += (object sender, ElapsedEventArgs e) => ConfirmarClientes();
+
+            OnClienteConectado += ClienteP2P_OnClienteConectado;
+        }
+
+        /// <summary>
+        /// Evento de conexão do protocolo
+        /// </summary>
+        /// <param name="addr">Endereço do cliente conectado</param>
+        private void ClienteP2P_OnClienteConectado(IPAddress addr)
+        {
+            Conectado = true;
         }
 
         /// <summary>
@@ -221,10 +235,7 @@ namespace BatalhaNaval
 
                             // Espera a confirmação definitiva de conexão
                             if (reader.ReadLine() == "OK")
-                            {
-                                Conectado = true;
                                 OnClienteConectado(addr);
-                            }
                             else
                                 throw new System.Exception("Falhou :(");
                         }

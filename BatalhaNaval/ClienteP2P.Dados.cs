@@ -90,15 +90,6 @@ namespace BatalhaNaval
             Tabuleiro = tabuleiro;
             OnClienteConectado += Dados_OnClienteConectado;
             OnClienteDesconectado += Dados_OnClienteDesconectado;
-            OnTiroRecebido += Dados_OnTiroRecebido;
-        }
-
-        /// <summary>
-        /// Evento de tiro recebido
-        /// </summary>
-        private void Dados_OnTiroRecebido(Tiro t)
-        {
-            t.Aplicar(Tabuleiro);
         }
 
         /// <summary>
