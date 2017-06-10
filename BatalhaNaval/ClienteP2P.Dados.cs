@@ -146,35 +146,35 @@ namespace BatalhaNaval
                     writer.WriteLine("Tiro " + _tiro.X + "," + _tiro.Y);
 
                     string r = reader.ReadLine();
+                    bool recebido = false;
 
                     if (r.StartsWith("Tiro "))
                     {
                         int x = Convert.ToInt32(r.Substring(5, r.IndexOf(',') - 5));
                         int y = Convert.ToInt32(r.Substring(r.IndexOf(',') + 1));
-                        OnTiroRecebido(new Tiro(x, y));
+                        Task.Run(() => OnTiroRecebido(new Tiro(x, y)));
+                        recebido = true;
 
-                        lock (writer)
-                            writer.WriteLine(((uint)Tabuleiro.Atirar(x, y)).ToString());
+                        writer.WriteLine(((uint)Tabuleiro.Atirar(x, y)).ToString());
                     }
 
                     while (!char.IsNumber(r[0])) r = reader.ReadLine();
                     
-                    OnResultadoDeTiro(_tiro, (ResultadoDeTiro)Convert.ToUInt32(r));
+                    Task.Run(() => OnResultadoDeTiro(_tiro, (ResultadoDeTiro)Convert.ToUInt32(r)));
 
                     _tiro = null;
 
-                    string line;
-                    
-                    line = reader.ReadLine();
-                    Debugger.Log(0, "msg", "I '" + line + "'" + Environment.NewLine);
-                    if (line.StartsWith("Tiro "))
+                    if (!recebido)
                     {
-                        int x = Convert.ToInt32(line.Substring(5, line.IndexOf(',') - 5));
-                        int y = Convert.ToInt32(line.Substring(line.IndexOf(',') + 1));
-                        OnTiroRecebido(new Tiro(x, y));
-                        
-                        lock(writer)
+                        r = reader.ReadLine();
+                        if (r.StartsWith("Tiro "))
+                        {
+                            int x = Convert.ToInt32(r.Substring(5, r.IndexOf(',') - 5));
+                            int y = Convert.ToInt32(r.Substring(r.IndexOf(',') + 1));
+                            Task.Run(() => OnTiroRecebido(new Tiro(x, y)));
+
                             writer.WriteLine(((uint)Tabuleiro.Atirar(x, y)).ToString());
+                        }
                     }
 
                     waitHandle.Reset();
