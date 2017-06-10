@@ -1,12 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
-using System.Net.Sockets;
-using System.Security.AccessControl;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Timers;
 
 namespace BatalhaNaval
 {
@@ -59,6 +57,16 @@ namespace BatalhaNaval
         /// Mapa usado pelo cliente
         /// </summary>
         public Tabuleiro Tabuleiro { get; private set; }
+
+        /// <summary>
+        /// Lista de tiros dados pelo cliente e seus resultados
+        /// </summary>
+        public ListaDeTiros TirosDados { get; private set; }
+
+        /// <summary>
+        /// Lista de todos os tiros recebidos pelo cliente
+        /// </summary>
+        public ListaDeTiros TirosRecebidos { get; private set; }
 
         /// <summary>
         /// Mutex para esperar um tiro
@@ -124,6 +132,44 @@ namespace BatalhaNaval
         }
 
         /// <summary>
+        /// Espera o usuário dar um tiro com um timeout e retorna o tiro dado ou um tiro
+        /// aleatório caso o timeout expire
+        /// </summary>
+        private Tiro EsperarTiro()
+        {
+            OnDarTiro();
+            waitHandle.WaitOne(TIMEOUT_TIRO);
+
+            if (_tiro == null)
+                _tiro = new Tiro(rnd.Next(Tabuleiro.NumeroDeColunas), rnd.Next(Tabuleiro.NumeroDeLinhas));
+
+            return _tiro;
+        }
+
+        /// <summary>
+        /// Recebe um tiro do cliente remoto caso ele o tenha enviado ou não faz nada
+        /// caso não tenha
+        /// </summary>
+        /// <param name="reader">StreamReader para o cliente remoto</param>
+        /// <param name="line">Parâmetro de saída para a última linha lida do cliente</param>
+        /// <returns>O tiro recebido do cliente remoto ou nulo caso nenhum tiro tenha sido
+        /// recebido</returns>
+        private Tiro ReceberTiro(StreamReader reader, out string line)
+        {
+            Tiro recebido = null;
+
+            for (line = reader.ReadLine(); line.StartsWith("Tiro "); line = reader.ReadLine())
+            {
+                int x = Convert.ToInt32(line.Substring(5, line.IndexOf(',') - 5));
+                int y = Convert.ToInt32(line.Substring(line.IndexOf(',') + 1));
+
+                recebido = new Tiro(x, y);
+            }
+
+            return recebido;
+        }
+
+        /// <summary>
         /// Executa o jogo se comunicando com o par remoto
         /// </summary>
         private void Jogar()
@@ -132,38 +178,41 @@ namespace BatalhaNaval
             writer.AutoFlush = true;
 
             StreamReader reader = new StreamReader(cliente.GetStream());
-            
+
             try
             {
                 while (Conectado)
                 {
-                    OnDarTiro();
-                    waitHandle.WaitOne(TIMEOUT_TIRO); 
+                    // Envia um tiro
+                    Tiro tiroDado = EsperarTiro();
+                    writer.WriteLine("Tiro " + tiroDado.X + "," + tiroDado.Y);
 
-                    if (_tiro == null)
-                        _tiro = new Tiro(rnd.Next(Tabuleiro.NumeroDeColunas), rnd.Next(Tabuleiro.NumeroDeLinhas));
-                        
-                    writer.WriteLine("Tiro " + _tiro.X + "," + _tiro.Y);
+                    // Recebe o resultado do tiro ou um tiro do cliente remoto
+                    string r;
+                    Tiro recebido = ReceberTiro(reader, out r);
 
-                    string r = reader.ReadLine();
-
-                    if (r.StartsWith("Tiro "))
-                    {
-                        int x = Convert.ToInt32(r.Substring(5, r.IndexOf(',') - 5));
-                        int y = Convert.ToInt32(r.Substring(r.IndexOf(',') + 1));
-                        OnTiroRecebido(new Tiro(x, y));
-
-                        writer.WriteLine(((uint)Tabuleiro.Atirar(x, y)).ToString());
-                    }
-
-                    while (!char.IsNumber(r[0])) r = reader.ReadLine();
-                    
-                    OnResultadoDeTiro(_tiro, (ResultadoDeTiro)Convert.ToUInt32(r));
+                    ResultadoDeTiro resultado = (ResultadoDeTiro)Convert.ToUInt32(r);
+                    TirosDados.Add(_tiro, resultado);
+                    Task.Run(() => OnResultadoDeTiro(new Tiro(_tiro.X, _tiro.Y), resultado));
 
                     _tiro = null;
+
+                    // Se não havia recebido um tiro do cliente remoto, recebe agora
+                    if (recebido == null)
+                        recebido = ReceberTiro(reader, out r);
+
+                    // Envia o resultado do tiro recebido
+                    lock (writer)
+                        writer.WriteLine(((uint)recebido.Aplicar(Tabuleiro)).ToString());
+
+                    // Avisa que recebeu o tiro para o cliente local
+                    Task.Run(() => OnTiroRecebido(recebido));
+
                     waitHandle.Reset();
                 }
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 Debugger.Log(0, "error", e.Message + Environment.NewLine);
                 OnClienteDesconectado((cliente.Client.RemoteEndPoint as IPEndPoint).Address);
             }

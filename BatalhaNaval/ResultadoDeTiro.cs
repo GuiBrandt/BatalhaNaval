@@ -8,10 +8,12 @@ namespace BatalhaNaval
     [Flags]
     public enum ResultadoDeTiro : uint
     {
-        // Resultado
         Errou   = 0x000000,
         Acertou = 0x010000,
         Afundou = 0x020000 | Acertou,
+        Ganhou  = 0x040000 | Acertou | Afundou,
+        
+        Invalido = 0xffffff
     }    
 
     /// <summary>
