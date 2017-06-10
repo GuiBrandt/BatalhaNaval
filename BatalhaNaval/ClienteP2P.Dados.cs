@@ -146,37 +146,21 @@ namespace BatalhaNaval
                     writer.WriteLine("Tiro " + _tiro.X + "," + _tiro.Y);
 
                     string r = reader.ReadLine();
-                    bool recebido = false;
 
                     if (r.StartsWith("Tiro "))
                     {
                         int x = Convert.ToInt32(r.Substring(5, r.IndexOf(',') - 5));
                         int y = Convert.ToInt32(r.Substring(r.IndexOf(',') + 1));
-                        Task.Run(() => OnTiroRecebido(new Tiro(x, y)));
-                        recebido = true;
+                        OnTiroRecebido(new Tiro(x, y));
 
                         writer.WriteLine(((uint)Tabuleiro.Atirar(x, y)).ToString());
                     }
 
                     while (!char.IsNumber(r[0])) r = reader.ReadLine();
                     
-                    Task.Run(() => OnResultadoDeTiro(_tiro, (ResultadoDeTiro)Convert.ToUInt32(r)));
+                    OnResultadoDeTiro(_tiro, (ResultadoDeTiro)Convert.ToUInt32(r));
 
                     _tiro = null;
-
-                    if (!recebido)
-                    {
-                        r = reader.ReadLine();
-                        if (r.StartsWith("Tiro "))
-                        {
-                            int x = Convert.ToInt32(r.Substring(5, r.IndexOf(',') - 5));
-                            int y = Convert.ToInt32(r.Substring(r.IndexOf(',') + 1));
-                            Task.Run(() => OnTiroRecebido(new Tiro(x, y)));
-
-                            writer.WriteLine(((uint)Tabuleiro.Atirar(x, y)).ToString());
-                        }
-                    }
-
                     waitHandle.Reset();
                 }
             } catch (Exception e) {
