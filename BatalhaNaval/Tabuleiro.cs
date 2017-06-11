@@ -282,12 +282,13 @@ namespace BatalhaNaval
                 return ResultadoDeTiro.Errou;
 
             // Se não errou, acertou
-            ResultadoDeTiro r = ResultadoDeTiro.Acertou | (ResultadoDeTiro)celula.TipoDeNavio;
+            celula.FoiAcertada = true;
+            ResultadoDeTiro r = ResultadoDeTiro.Acertou;// | (ResultadoDeTiro)celula.TipoDeNavio;
 
             // Verifica se afundou o navio
             Celula atual = celula.PrimeiraDoNavio;
-            bool afundou = true;
-            while (atual != null && afundou)
+            bool afundou;
+            for (afundou = true; atual != null && afundou; atual = atual.ProximaDoNavio)
                 afundou = atual.FoiAcertada;
 
             if (afundou)

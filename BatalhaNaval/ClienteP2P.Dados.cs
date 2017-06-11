@@ -52,7 +52,7 @@ namespace BatalhaNaval
         /// Evento de tiro recebido
         /// </summary>
         public event EventoDeTiroRecebido OnTiroRecebido;
-
+        
         /// <summary>
         /// Mapa usado pelo cliente
         /// </summary>
@@ -147,32 +147,6 @@ namespace BatalhaNaval
         }
 
         /// <summary>
-        /// Recebe um tiro do cliente remoto caso ele o tenha enviado ou não faz nada
-        /// caso não tenha
-        /// </summary>
-        /// <param name="reader">StreamReader para o cliente remoto</param>
-        /// <param name="line">Parâmetro de saída para a última linha lida do cliente</param>
-        /// <returns>O tiro recebido do cliente remoto ou nulo caso nenhum tiro tenha sido
-        /// recebido</returns>
-        private Tiro ReceberTiro(StreamReader reader, out string line)
-        {
-            Tiro recebido = null;
-
-            for (line = reader.ReadLine(); line.StartsWith("Tiro "); line = reader.ReadLine())
-            {
-                int x = Convert.ToInt32(line.Substring(5, line.IndexOf(',') - 5));
-                int y = Convert.ToInt32(line.Substring(line.IndexOf(',') + 1));
-
-                Console.WriteLine(line);
-
-                recebido = new Tiro(x, y);
-            }
-            Console.WriteLine(line);
-
-            return recebido;
-        }
-
-        /// <summary>
         /// Executa o jogo se comunicando com o par remoto
         /// </summary>
         private void Jogar()
@@ -192,32 +166,33 @@ namespace BatalhaNaval
                     // Envia um tiro
                     Tiro tiroDado = EsperarTiro();
                     writer.WriteLine("Tiro " + tiroDado.X + "," + tiroDado.Y);
-                    writer.WriteLine("sla");
 
                     // Recebe um tiro do cliente remoto
                     string r;
-                    Tiro recebido = ReceberTiro(reader, out r);
+                    string line;
+                    line = reader.ReadLine();
+
+                    int x = Convert.ToInt32(line.Substring(5, line.IndexOf(',') - 5));
+                    int y = Convert.ToInt32(line.Substring(line.IndexOf(',') + 1));
+
+                    Tiro recebido = new Tiro(x, y);
 
                     // Avisa que recebeu o tiro para o cliente local
+                    TirosRecebidos.Add(recebido, recebido.Aplicar(Tabuleiro));
                     OnTiroRecebido(recebido);
 
 
                     // Envia o resultado do tiro recebido
-                    lock (writer)
-                    {
-                        writer.WriteLine("Tiro " + recebido.X + "," + recebido.Y);
-                        writer.WriteLine(((uint)recebido.Aplicar(Tabuleiro)).ToString());
-                    }
+                    writer.WriteLine(((uint)recebido.Aplicar(Tabuleiro)).ToString());
 
                     // Recebe o resultado do seu tiro
-                    recebido = ReceberTiro(reader, out r);
+                    line = reader.ReadLine();
 
                     // Avisa o cliente do resultado do tiro
                     ResultadoDeTiro resultado = ResultadoDeTiro.Errou;
-                    if (recebido != null)
-                        resultado = (ResultadoDeTiro)Convert.ToUInt32(r);
-                    TirosDados.Add(recebido, resultado);
-                    OnResultadoDeTiro(new Tiro(recebido.X, recebido.Y), resultado);
+                    resultado = (ResultadoDeTiro)Convert.ToUInt32(line);
+                    TirosDados.Add(tiroDado, resultado);
+                    OnResultadoDeTiro(tiroDado, resultado);
 
 
                     _tiro = null;
