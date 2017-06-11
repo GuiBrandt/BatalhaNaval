@@ -119,7 +119,13 @@ namespace BatalhaNaval
         {
             Nome = nome;
 
-            servidorBroadcast = new UdpClient(new IPEndPoint(IPAddress.Any, PortaBroadcast));
+            IPEndPoint ip = new IPEndPoint(IPAddress.Any, PortaBroadcast);
+
+            servidorBroadcast = new UdpClient();
+            servidorBroadcast.Client.SetSocketOption(
+                SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true
+            );
+            servidorBroadcast.Client.Bind(ip);
             servidorBroadcast.EnableBroadcast = true;
             servidorBroadcast.MulticastLoopback = false;
 
