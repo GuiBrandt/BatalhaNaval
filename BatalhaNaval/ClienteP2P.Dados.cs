@@ -165,8 +165,11 @@ namespace BatalhaNaval
                 int x = Convert.ToInt32(line.Substring(5, line.IndexOf(',') - 5));
                 int y = Convert.ToInt32(line.Substring(line.IndexOf(',') + 1));
 
+                Console.WriteLine(line);
+
                 recebido = new Tiro(x, y);
             }
+            Console.WriteLine(line);
 
             return recebido;
         }
@@ -179,6 +182,8 @@ namespace BatalhaNaval
             StreamWriter writer = new StreamWriter(cliente.GetStream());
             writer.AutoFlush = true;
 
+            TirosDados = new ListaDeTiros();
+
             StreamReader reader = new StreamReader(cliente.GetStream());
 
             try
@@ -186,18 +191,20 @@ namespace BatalhaNaval
                 while (Conectado)
                 {
                     // Envia um tiro
+
                     Tiro tiroDado = EsperarTiro();
                     writer.WriteLine("Tiro " + tiroDado.X + "," + tiroDado.Y);
+                    writer.WriteLine("sla");
 
                     // Recebe o resultado do tiro ou um tiro do cliente remoto
                     string r;
                     Tiro recebido = ReceberTiro(reader, out r);
 
-                    ResultadoDeTiro resultado = (ResultadoDeTiro)Convert.ToUInt32(r);
+                    ResultadoDeTiro resultado = ResultadoDeTiro.Errou;
+                    if (recebido != null)
+                        resultado = Tabuleiro.Atirar(recebido.X, recebido.Y);
                     TirosDados.Add(_tiro, resultado);
-
-                    Tiro t = _tiro;
-                    Task.Run(() => OnResultadoDeTiro(new Tiro(t.X, t.Y), resultado));
+                    OnResultadoDeTiro(new Tiro(_tiro.X, _tiro.Y), resultado);
 
                     _tiro = null;
 
@@ -210,7 +217,7 @@ namespace BatalhaNaval
                         writer.WriteLine(((uint)recebido.Aplicar(Tabuleiro)).ToString());
 
                     // Avisa que recebeu o tiro para o cliente local
-                    Task.Run(() => OnTiroRecebido(recebido));
+                    OnTiroRecebido(recebido);
 
                     waitHandle.Reset();
                 }
