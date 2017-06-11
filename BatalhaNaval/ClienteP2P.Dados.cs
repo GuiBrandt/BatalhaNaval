@@ -96,8 +96,6 @@ namespace BatalhaNaval
 
             rnd = new Random();
             waitHandle = new AutoResetEvent(false);
-            TirosDados = new ListaDeTiros();
-            TirosRecebidos = new ListaDeTiros();
             Tabuleiro = tabuleiro;
             OnClienteConectado += Dados_OnClienteConectado;
             OnClienteDesconectado += Dados_OnClienteDesconectado;
@@ -183,6 +181,7 @@ namespace BatalhaNaval
             writer.AutoFlush = true;
 
             TirosDados = new ListaDeTiros();
+            TirosRecebidos = new ListaDeTiros();
 
             StreamReader reader = new StreamReader(cliente.GetStream());
 
@@ -191,33 +190,37 @@ namespace BatalhaNaval
                 while (Conectado)
                 {
                     // Envia um tiro
-
                     Tiro tiroDado = EsperarTiro();
                     writer.WriteLine("Tiro " + tiroDado.X + "," + tiroDado.Y);
                     writer.WriteLine("sla");
 
-                    // Recebe o resultado do tiro ou um tiro do cliente remoto
+                    // Recebe um tiro do cliente remoto
                     string r;
                     Tiro recebido = ReceberTiro(reader, out r);
 
-                    ResultadoDeTiro resultado = ResultadoDeTiro.Errou;
-                    if (recebido != null)
-                        resultado = Tabuleiro.Atirar(recebido.X, recebido.Y);
-                    TirosDados.Add(_tiro, resultado);
-                    OnResultadoDeTiro(new Tiro(_tiro.X, _tiro.Y), resultado);
+                    // Avisa que recebeu o tiro para o cliente local
+                    OnTiroRecebido(recebido);
 
-                    _tiro = null;
-
-                    // Se não havia recebido um tiro do cliente remoto, recebe agora
-                    if (recebido == null)
-                        recebido = ReceberTiro(reader, out r);
 
                     // Envia o resultado do tiro recebido
                     lock (writer)
+                    {
+                        writer.WriteLine("Tiro " + recebido.X + "," + recebido.Y);
                         writer.WriteLine(((uint)recebido.Aplicar(Tabuleiro)).ToString());
+                    }
 
-                    // Avisa que recebeu o tiro para o cliente local
-                    OnTiroRecebido(recebido);
+                    // Recebe o resultado do seu tiro
+                    recebido = ReceberTiro(reader, out r);
+
+                    // Avisa o cliente do resultado do tiro
+                    ResultadoDeTiro resultado = ResultadoDeTiro.Errou;
+                    if (recebido != null)
+                        resultado = (ResultadoDeTiro)Convert.ToUInt32(r);
+                    TirosDados.Add(recebido, resultado);
+                    OnResultadoDeTiro(new Tiro(recebido.X, recebido.Y), resultado);
+
+
+                    _tiro = null;
 
                     waitHandle.Reset();
                 }
