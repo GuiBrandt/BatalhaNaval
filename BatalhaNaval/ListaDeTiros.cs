@@ -46,6 +46,16 @@ namespace BatalhaNaval
         }
 
         /// <summary>
+        /// Verifica se um tiro existe na lista
+        /// </summary>
+        /// <param name="t">O tiro</param>
+        /// <returns>True se ele existe e false se não</returns>
+        public bool Contains(Tiro t)
+        {
+            return _tiros.ContainsKey(t);
+        }
+
+        /// <summary>
         /// Obtém um enumerador de tipo específico da lista
         /// </summary>
         /// <returns>Um enumerador que percorre todos os tiros da lista</returns>
