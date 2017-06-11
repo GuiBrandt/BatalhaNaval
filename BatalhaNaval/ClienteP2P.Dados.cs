@@ -165,8 +165,8 @@ namespace BatalhaNaval
                 {
                     // Envia um tiro
                     Tiro tiroDado = EsperarTiro();
-                    writer.WriteLine("Tiro " + tiroDado.X + "," + tiroDado.Y);
-
+                    writer.writeLine("Tiro " + tiroDado.X + "," + tiroDado.Y);
+                  
                     // Recebe um tiro do cliente remoto
                     string r;
                     string line;
@@ -193,9 +193,6 @@ namespace BatalhaNaval
                     resultado = (ResultadoDeTiro)Convert.ToUInt32(line);
                     TirosDados.Add(tiroDado, resultado);
                     OnResultadoDeTiro(tiroDado, resultado);
-
-
-                    _tiro = null;
 
                     waitHandle.Reset();
                 }
